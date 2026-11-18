@@ -1,7 +1,8 @@
 import { ButtonComponent, Component, DropdownComponent, ItemView, Keymap, MarkdownRenderer, Notice, Platform, setIcon, TFile, WorkspaceLeaf } from "obsidian";
-import { Agent, Selection } from "./agent";
+import { Agent, ContextNote, Selection } from "./agent";
 import { AuthError } from "./auth";
 import { Chat, ChatPickerModal, ChatTurn } from "./chats";
+import { ContextNotesModal } from "./context-notes-modal";
 import type VaultScoutPlugin from "./main";
 import { ApiError, streamingUnavailableReason } from "./openai";
 import { SignInModal } from "./sign-in-modal";
@@ -73,6 +74,8 @@ export class ChatView extends ItemView {
 	private accountEl!: HTMLElement;
 	private noteButton!: HTMLElement;
 	private internetButton!: HTMLElement;
+	private contextButton!: HTMLElement;
+	private contextToggleButton!: HTMLElement;
 	private messageComponents: Component[] = [];
 	private abort: AbortController | undefined;
 	private streamingNoteShown = false;
@@ -83,7 +86,7 @@ export class ChatView extends ItemView {
 	constructor(leaf: WorkspaceLeaf, private plugin: VaultScoutPlugin) {
 		super(leaf);
 		this.agent = new Agent(plugin.auth, plugin.tools);
-		this.chat = plugin.chats.newChat(plugin.settings.model);
+		this.chat = plugin.chats.newChat(plugin.settings.model, plugin.settings.defaultContextNotes);
 	}
 
 	getViewType(): string {
@@ -115,6 +118,23 @@ export class ChatView extends ItemView {
 		});
 		this.iconButton(header, "square-pen", "New chat", () => this.newChat());
 
+		const featureToolbar = root.createDiv({ cls: "vault-scout-feature-toolbar" });
+		this.contextButton = this.iconButton(featureToolbar, "book-open", "", () => this.openContextPicker());
+		this.contextButton.addClass("vault-scout-context-button");
+		this.contextToggleButton = this.iconButton(featureToolbar, "eye-off", "", () => void this.toggleContextNotes());
+		this.contextToggleButton.addClass("vault-scout-context-toggle");
+		this.updateContextButtons();
+		this.internetButton = this.iconButton(featureToolbar, "globe", "", () => void this.toggleInternetSearch());
+		this.internetButton.addClass("vault-scout-internet-toggle");
+		this.updateInternetButton();
+		// Images: the iOS picker offers the photo library, the camera and files.
+		const picker = featureToolbar.createEl("input", { cls: "vault-scout-file-input", attr: { type: "file", accept: "image/*", multiple: "" } });
+		this.registerDomEvent(picker, "change", () => {
+			void this.addImages(Array.from(picker.files ?? []));
+			picker.value = "";
+		});
+		this.iconButton(featureToolbar, "image-plus", "Attach images", () => picker.click()).addClass("vault-scout-attach");
+
 		this.titleEl = root.createDiv({ cls: "vault-scout-title" });
 		this.accountEl = root.createDiv({ cls: "vault-scout-account" });
 		this.messagesEl = root.createDiv({ cls: "vault-scout-messages" });
@@ -122,16 +142,6 @@ export class ChatView extends ItemView {
 
 		this.attachmentsEl = root.createDiv({ cls: "vault-scout-attachments is-hidden" });
 		const composer = root.createDiv({ cls: "vault-scout-composer" });
-		this.internetButton = this.iconButton(composer, "globe", "", () => void this.toggleInternetSearch());
-		this.internetButton.addClass("vault-scout-internet-toggle");
-		this.updateInternetButton();
-		// Images: the iOS picker offers the photo library, the camera and files.
-		const picker = composer.createEl("input", { cls: "vault-scout-file-input", attr: { type: "file", accept: "image/*", multiple: "" } });
-		this.registerDomEvent(picker, "change", () => {
-			void this.addImages(Array.from(picker.files ?? []));
-			picker.value = "";
-		});
-		this.iconButton(composer, "image-plus", "Attach images", () => picker.click()).addClass("vault-scout-attach");
 		this.inputEl = composer.createEl("textarea", { attr: { placeholder: "Ask about your notes…", rows: "3" } });
 		this.registerDomEvent(this.inputEl, "paste", (evt) => {
 			const items = Array.from(evt.clipboardData?.items ?? []);
@@ -207,7 +217,18 @@ export class ChatView extends ItemView {
 	}
 
 	pickChat(): void {
-		new ChatPickerModal(this.app, this.plugin.chats, (file) => void this.openChat(file)).open();
+		new ChatPickerModal(
+			this.app,
+			this.plugin.chats,
+			(file) => void this.openChat(file),
+			(file) => {
+				if (this.chat.file?.path !== file.path) return;
+				this.agent.reset();
+				this.chat = this.plugin.chats.newChat(this.plugin.settings.model, this.plugin.settings.defaultContextNotes);
+				this.clearMessages();
+				this.updateHeader();
+			},
+		).open();
 	}
 
 	async openChat(file: TFile): Promise<void> {
@@ -239,6 +260,78 @@ export class ChatView extends ItemView {
 		this.titleEl.setText(this.chat.title);
 		this.titleEl.toggleClass("is-hidden", !this.chat.title);
 		this.noteButton.toggleClass("is-hidden", !this.chat.file);
+		this.updateContextButtons();
+	}
+
+	private updateContextButtons() {
+		if (!this.contextButton || !this.contextToggleButton) return;
+		const count = this.chat.contextNotes.length;
+		const pickerLabel = count ? `Context notes · ${count} selected` : "Choose context notes";
+		this.contextButton.setAttribute("aria-label", pickerLabel);
+		this.contextButton.setAttribute("title", pickerLabel);
+		if (count === 0) this.contextToggleButton.setAttribute("disabled", "");
+		else this.contextToggleButton.removeAttribute("disabled");
+		const enabled = count > 0 && this.chat.contextEnabled;
+		const toggleLabel = enabled ? "Context notes on" : count ? "Context notes off" : "Select context notes first";
+		this.contextToggleButton.setAttribute("aria-label", toggleLabel);
+		this.contextToggleButton.setAttribute("aria-pressed", String(enabled));
+		this.contextToggleButton.setAttribute("title", toggleLabel);
+		setIcon(this.contextToggleButton, enabled ? "eye" : "eye-off");
+		this.contextToggleButton.toggleClass("is-active", enabled);
+	}
+
+	private openContextPicker() {
+		new ContextNotesModal(this.app, this.chat.contextNotes, async (paths, saveAsDefault) => {
+			const hadNotes = this.chat.contextNotes.length > 0;
+			this.chat.contextNotes = paths;
+			if (!paths.length) this.chat.contextEnabled = false;
+			else if (!hadNotes) this.chat.contextEnabled = true;
+			await this.plugin.chats.save(this.chat);
+			if (saveAsDefault) {
+				this.plugin.settings.defaultContextNotes = [...paths];
+				await this.plugin.saveSettings();
+			}
+			this.updateHeader();
+			new Notice(saveAsDefault ? "Context notes saved for this chat and as the default for new chats." : "Context notes saved for this chat.");
+		}).open();
+	}
+
+	private async toggleContextNotes() {
+		if (!this.chat.contextNotes.length) return;
+		this.chat.contextEnabled = !this.chat.contextEnabled;
+		this.updateContextButtons();
+		try {
+			await this.plugin.chats.save(this.chat);
+		} catch (error) {
+			this.chat.contextEnabled = !this.chat.contextEnabled;
+			this.updateContextButtons();
+			new Notice(`Could not save the chat context setting: ${describe(error)}`);
+		}
+	}
+
+	private async selectedContextNotes(): Promise<ContextNote[]> {
+		if (!this.chat.contextEnabled) return [];
+		const context: ContextNote[] = [];
+		let remaining = 80_000;
+		let omitted = 0;
+		for (const path of this.chat.contextNotes) {
+			if (remaining <= 0) {
+				omitted++;
+				continue;
+			}
+			const file = this.app.vault.getAbstractFileByPath(path);
+			if (!(file instanceof TFile) || file.extension !== "md") {
+				new Notice(`Context note not found: ${path}`);
+				continue;
+			}
+			const content = await this.app.vault.cachedRead(file);
+			const included = content.slice(0, Math.min(content.length, remaining, 30_000));
+			context.push({ path: file.path, content: included });
+			remaining -= included.length;
+			if (included.length < content.length) omitted++;
+		}
+		if (omitted) new Notice(`${omitted} context note${omitted === 1 ? " was" : "s were"} shortened to fit the chat context.`);
+		return context;
 	}
 
 	private updateInternetButton() {
@@ -288,7 +381,7 @@ export class ChatView extends ItemView {
 	private newChat() {
 		this.abort?.abort();
 		this.agent.reset();
-		this.chat = this.plugin.chats.newChat(this.plugin.settings.model);
+		this.chat = this.plugin.chats.newChat(this.plugin.settings.model, this.plugin.settings.defaultContextNotes);
 		this.clearMessages();
 		this.updateHeader();
 	}
@@ -344,7 +437,8 @@ export class ChatView extends ItemView {
 		};
 
 		try {
-			const incomplete = await this.agent.send({ text, images, selection }, this.plugin.settings.model, this.plugin.settings.extraInstructions, this.plugin.settings.webSearchEnabled, {
+			const contextNotes = await this.selectedContextNotes();
+			const incomplete = await this.agent.send({ text, images, selection }, this.plugin.settings.model, this.plugin.settings.extraInstructions, this.plugin.settings.webSearchEnabled, contextNotes, {
 				onText: (delta) => {
 					streamed += delta;
 					bubble.setText(streamed);

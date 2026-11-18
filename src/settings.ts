@@ -11,6 +11,7 @@ export interface VaultScoutSettings {
 	skillsFolder: string;
 	confirmChanges: boolean;
 	webSearchEnabled: boolean;
+	defaultContextNotes: string[];
 	disabledSkills: string[];
 	skillSources: Record<string, SkillSource>;
 }
@@ -22,6 +23,7 @@ export const DEFAULT_SETTINGS: VaultScoutSettings = {
 	skillsFolder: "Vault Scout/Skills",
 	confirmChanges: true,
 	webSearchEnabled: false,
+	defaultContextNotes: [],
 	disabledSkills: [],
 	skillSources: {},
 };

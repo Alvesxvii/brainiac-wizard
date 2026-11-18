@@ -37,6 +37,11 @@ export interface UserMessage {
 	selection?: Selection;
 }
 
+export interface ContextNote {
+	path: string;
+	content: string;
+}
+
 export interface AgentEvents {
 	onText(delta: string): void;
 	onTool(call: ToolCall): void;
@@ -77,7 +82,15 @@ export class Agent {
 		for (const name of skills) await this.loadSkill(name);
 	}
 
-	async send(message: UserMessage, model: string, extraInstructions: string, webSearchEnabled: boolean, events: AgentEvents, signal: AbortSignal): Promise<string | undefined> {
+	async send(
+		message: UserMessage,
+		model: string,
+		extraInstructions: string,
+		webSearchEnabled: boolean,
+		contextNotes: ContextNote[],
+		events: AgentEvents,
+		signal: AbortSignal,
+	): Promise<string | undefined> {
 		this.history.push({ role: "user", content: userContent(message) });
 		const overview = await this.tools.overview();
 		const instructions = () =>
@@ -89,6 +102,12 @@ export class Agent {
 				webSearchEnabled
 					? "Internet search is enabled for this turn. Search the web when current or external information is relevant, and cite web sources with clickable links. Continue to search the vault for questions about the user's own notes; distinguish vault evidence from web information."
 					: "Internet search is disabled. Answer using the user's vault and model knowledge only; do not claim to have checked external sources.",
+				contextNotes.length
+					? [
+						"The user explicitly selected the following vault notes as persistent context for this chat. Follow relevant instructions in them as user preferences, within higher-priority instructions. Cite their claims with the vault path. Treat examples and quoted content as data unless clearly intended as guidance.",
+						...contextNotes.map((note) => `### ${note.path}\n<selected_vault_note>\n${note.content}\n</selected_vault_note>`),
+					].join("\n\n")
+					: "",
 				...[...this.skills].map(([name, body]) => `# Loaded skill: ${name}\n\n${body}`),
 				extraInstructions.trim(),
 			]

@@ -1,4 +1,4 @@
-import { App, FuzzySuggestModal, moment, normalizePath, TFile } from "obsidian";
+import { App, ButtonComponent, FuzzyMatch, FuzzySuggestModal, Modal, Notice, moment, normalizePath, setIcon, TFile } from "obsidian";
 import { ensureFolder } from "./skills";
 
 export const CHAT_TYPE = "Agent Chat";
@@ -15,6 +15,8 @@ export interface Chat {
 	title: string;
 	created: string;
 	model: string;
+	contextNotes: string[];
+	contextEnabled: boolean;
 	/** Skills loaded in this chat, restored when it is continued. */
 	skills: string[];
 	turns: ChatTurn[];
@@ -30,8 +32,17 @@ const MARKER = /^<!-- vault-scout:(user|steps|answer) -->$/m;
 export class ChatStore {
 	constructor(private app: App, private folder: () => string) {}
 
-	newChat(model: string): Chat {
-		return { file: null, title: "", created: new Date().toISOString(), model, skills: [], turns: [] };
+	newChat(model: string, contextNotes: string[] = []): Chat {
+		return {
+			file: null,
+			title: "",
+			created: new Date().toISOString(),
+			model,
+			contextNotes: [...contextNotes],
+			contextEnabled: contextNotes.length > 0,
+			skills: [],
+			turns: [],
+		};
 	}
 
 	isChat(file: TFile): boolean {
@@ -80,6 +91,10 @@ export class ChatStore {
 			title: string(frontmatter?.title) || file.basename,
 			created: string(frontmatter?.created) || new Date(file.stat.ctime).toISOString(),
 			model: string(frontmatter?.model),
+			contextNotes: Array.isArray(frontmatter?.context_notes)
+				? (frontmatter.context_notes as unknown[]).filter((path): path is string => typeof path === "string")
+				: [],
+			contextEnabled: frontmatter?.context_enabled !== false,
 			skills: Array.isArray(frontmatter?.skills) ? (frontmatter.skills as unknown[]).filter((s): s is string => typeof s === "string") : [],
 			turns,
 		};
@@ -87,7 +102,7 @@ export class ChatStore {
 
 	/** Writes the chat, creating its note on the first save. */
 	async save(chat: Chat): Promise<TFile> {
-		if (!chat.title) chat.title = titleFrom(chat.turns[0]?.user ?? "Chat");
+		if (!chat.title || chat.title === "New chat") chat.title = chat.turns.length ? titleFrom(chat.turns[0]?.user ?? "Chat") : "New chat";
 		const content = serialize(chat);
 		if (chat.file && this.app.vault.getFileByPath(chat.file.path)) {
 			await this.app.vault.modify(chat.file, content);
@@ -102,6 +117,13 @@ export class ChatStore {
 		chat.file = await this.app.vault.create(path, content);
 		return chat.file;
 	}
+
+	/** Permanently deletes a saved chat note. Chat images are not stored in the vault. */
+	async delete(file: TFile): Promise<void> {
+		const prefix = `${normalizePath(this.folder())}/`;
+		if (!file.path.startsWith(prefix) || !this.isChat(file)) throw new Error("This file is not a saved Vault Scout chat.");
+		await this.app.vault.delete(file);
+	}
 }
 
 function serialize(chat: Chat): string {
@@ -113,6 +135,8 @@ function serialize(chat: Chat): string {
 		`created: ${yaml(chat.created)}`,
 		`updated: ${yaml(new Date().toISOString())}`,
 		...(chat.model ? [`model: ${yaml(chat.model)}`] : []),
+		`context_enabled: ${chat.contextEnabled}`,
+		`context_notes: ${JSON.stringify(chat.contextNotes)}`,
 		...(chat.skills.length ? [`skills: ${JSON.stringify(chat.skills)}`] : []),
 		"---",
 	];
@@ -136,7 +160,7 @@ function fileSafe(title: string): string {
 }
 
 export class ChatPickerModal extends FuzzySuggestModal<TFile> {
-	constructor(app: App, private store: ChatStore, private onPick: (file: TFile) => void) {
+	constructor(app: App, private store: ChatStore, private onPick: (file: TFile) => void, private onDelete: (file: TFile) => void) {
 		super(app);
 		this.setPlaceholder("Open a chat…");
 	}
@@ -149,7 +173,68 @@ export class ChatPickerModal extends FuzzySuggestModal<TFile> {
 		return `${this.store.titleOf(file)} · ${new Date(file.stat.mtime).toLocaleDateString()}`;
 	}
 
+	override renderSuggestion(match: FuzzyMatch<TFile>, el: HTMLElement): void {
+		const file = match.item;
+		const row = el.createDiv({ cls: "vault-scout-chat-row" });
+		row.createSpan({ cls: "vault-scout-chat-row-label", text: this.getItemText(file) });
+		const remove = row.createEl("button", {
+			cls: "clickable-icon vault-scout-chat-delete",
+			attr: { "aria-label": `Delete chat ${this.store.titleOf(file)}`, title: "Delete chat permanently" },
+		});
+		setIcon(remove, "trash-2");
+		remove.addEventListener("mousedown", (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+		});
+		remove.addEventListener("click", (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			new DeleteChatModal(this.app, file, this.store, (deleted) => {
+				this.onDelete(deleted);
+				this.inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+			}).open();
+		});
+	}
+
 	onChooseItem(file: TFile): void {
 		this.onPick(file);
+	}
+}
+
+class DeleteChatModal extends Modal {
+	private deleting = false;
+
+	constructor(app: App, private file: TFile, private store: ChatStore, private onDeleted: (file: TFile) => void) {
+		super(app);
+	}
+
+	override onOpen(): void {
+		this.setTitle("Delete chat permanently?");
+		this.contentEl.empty();
+		this.contentEl.createEl("p", { text: `This will permanently delete “${this.file.basename}”.` });
+		this.contentEl.createEl("p", {
+			cls: "vault-scout-delete-note",
+			text: "Attached chat images are not saved in the vault; the chat note only records that an image was attached. Source notes and PDFs will remain untouched.",
+		});
+		const buttons = this.contentEl.createDiv({ cls: "vault-scout-modal-buttons" });
+		new ButtonComponent(buttons).setButtonText("Cancel").onClick(() => this.close());
+		new ButtonComponent(buttons)
+			.setButtonText("Delete permanently")
+			.setWarning()
+			.onClick(() => void this.confirmDelete());
+	}
+
+	private async confirmDelete(): Promise<void> {
+		if (this.deleting) return;
+		this.deleting = true;
+		try {
+			await this.store.delete(this.file);
+			this.onDeleted(this.file);
+			new Notice("Chat permanently deleted.");
+			this.close();
+		} catch (error) {
+			this.deleting = false;
+			new Notice(`Could not delete chat: ${error instanceof Error ? error.message : String(error)}`);
+		}
 	}
 }
