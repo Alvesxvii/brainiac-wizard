@@ -127,6 +127,16 @@ export class ChatView extends ItemView {
 		});
 		this.iconButton(composer, "image-plus", "Attach images", () => picker.click()).addClass("vault-scout-attach");
 		this.inputEl = composer.createEl("textarea", { attr: { placeholder: "Ask about your notes…", rows: "3" } });
+		this.registerDomEvent(this.inputEl, "paste", (evt) => {
+			const items = Array.from(evt.clipboardData?.items ?? []);
+			const images = items
+				.filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+				.map((item) => item.getAsFile())
+				.filter((file): file is File => file !== null);
+			if (!images.length) return;
+			evt.preventDefault();
+			void this.addImages(images);
+		});
 		this.registerDomEvent(this.inputEl, "keydown", (evt) => {
 			if (evt.key === "Enter" && !evt.shiftKey && !evt.isComposing && !Platform.isMobile) {
 				evt.preventDefault();
