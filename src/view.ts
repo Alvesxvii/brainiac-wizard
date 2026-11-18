@@ -72,6 +72,7 @@ export class ChatView extends ItemView {
 	private modelDropdown!: DropdownComponent;
 	private accountEl!: HTMLElement;
 	private noteButton!: HTMLElement;
+	private internetButton!: HTMLElement;
 	private messageComponents: Component[] = [];
 	private abort: AbortController | undefined;
 	private streamingNoteShown = false;
@@ -121,6 +122,9 @@ export class ChatView extends ItemView {
 
 		this.attachmentsEl = root.createDiv({ cls: "vault-scout-attachments is-hidden" });
 		const composer = root.createDiv({ cls: "vault-scout-composer" });
+		this.internetButton = this.iconButton(composer, "globe", "", () => void this.toggleInternetSearch());
+		this.internetButton.addClass("vault-scout-internet-toggle");
+		this.updateInternetButton();
 		// Images: the iOS picker offers the photo library, the camera and files.
 		const picker = composer.createEl("input", { cls: "vault-scout-file-input", attr: { type: "file", accept: "image/*", multiple: "" } });
 		this.registerDomEvent(picker, "change", () => {
@@ -237,6 +241,22 @@ export class ChatView extends ItemView {
 		this.noteButton.toggleClass("is-hidden", !this.chat.file);
 	}
 
+	private updateInternetButton() {
+		if (!this.internetButton) return;
+		const enabled = this.plugin.settings.webSearchEnabled;
+		const label = enabled ? "Internet search on · Vault + Internet" : "Internet search off · Vault only";
+		this.internetButton.setAttribute("aria-label", label);
+		this.internetButton.setAttribute("aria-pressed", String(enabled));
+		this.internetButton.setAttribute("title", label);
+		this.internetButton.toggleClass("is-active", enabled);
+	}
+
+	private async toggleInternetSearch() {
+		this.plugin.settings.webSearchEnabled = !this.plugin.settings.webSearchEnabled;
+		this.updateInternetButton();
+		await this.plugin.saveSettings();
+	}
+
 	private async refreshAccount() {
 		const connection = this.plugin.auth.connection;
 		this.accountEl.empty();
@@ -324,7 +344,7 @@ export class ChatView extends ItemView {
 		};
 
 		try {
-			const incomplete = await this.agent.send({ text, images, selection }, this.plugin.settings.model, this.plugin.settings.extraInstructions, {
+			const incomplete = await this.agent.send({ text, images, selection }, this.plugin.settings.model, this.plugin.settings.extraInstructions, this.plugin.settings.webSearchEnabled, {
 				onText: (delta) => {
 					streamed += delta;
 					bubble.setText(streamed);
@@ -332,6 +352,12 @@ export class ChatView extends ItemView {
 				},
 				onTool: (call) => {
 					const label = toolLabel(call);
+					turn.steps.push(label);
+					steps.add(label);
+					scroll();
+				},
+				onWebSearch: () => {
+					const label = "Searching the web";
 					turn.steps.push(label);
 					steps.add(label);
 					scroll();

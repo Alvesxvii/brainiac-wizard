@@ -10,6 +10,7 @@ export interface VaultScoutSettings {
 	chatFolder: string;
 	skillsFolder: string;
 	confirmChanges: boolean;
+	webSearchEnabled: boolean;
 	disabledSkills: string[];
 	skillSources: Record<string, SkillSource>;
 }
@@ -20,6 +21,7 @@ export const DEFAULT_SETTINGS: VaultScoutSettings = {
 	chatFolder: "Vault Scout/Chats",
 	skillsFolder: "Vault Scout/Skills",
 	confirmChanges: true,
+	webSearchEnabled: false,
 	disabledSkills: [],
 	skillSources: {},
 };
@@ -90,6 +92,11 @@ export class VaultScoutSettingTab extends PluginSettingTab {
 						name: "Confirm changes",
 						desc: "Show every note the agent creates or changes for approval before it is written.",
 						control: { type: "toggle", key: "confirmChanges" },
+					},
+					{
+						name: "Web search by default",
+						desc: "Allow the chat to search the internet. You can also change this from the chat composer; off means vault-only.",
+						control: { type: "toggle", key: "webSearchEnabled" },
 					},
 				],
 			},
@@ -163,6 +170,7 @@ export class VaultScoutSettingTab extends PluginSettingTab {
 		const stringKey = STRING_KEYS.find((k) => k === key);
 		if (stringKey && typeof value === "string") this.plugin.settings[stringKey] = value;
 		else if (key === "confirmChanges" && typeof value === "boolean") this.plugin.settings.confirmChanges = value;
+		else if (key === "webSearchEnabled" && typeof value === "boolean") this.plugin.settings.webSearchEnabled = value;
 		else return;
 		await this.plugin.saveSettings();
 	}

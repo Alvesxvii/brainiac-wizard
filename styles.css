@@ -185,6 +185,15 @@
 	align-self: flex-end;
 }
 
+.vault-scout-composer .vault-scout-internet-toggle {
+	align-self: flex-end;
+	color: var(--text-muted);
+}
+
+.vault-scout-composer .vault-scout-internet-toggle.is-active {
+	color: var(--text-accent);
+}
+
 .vault-scout-attachments {
 	display: flex;
 	flex-wrap: wrap;

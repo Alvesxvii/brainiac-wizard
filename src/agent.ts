@@ -40,6 +40,7 @@ export interface UserMessage {
 export interface AgentEvents {
 	onText(delta: string): void;
 	onTool(call: ToolCall): void;
+	onWebSearch(): void;
 	onRoundEnd(): void;
 }
 
@@ -76,7 +77,7 @@ export class Agent {
 		for (const name of skills) await this.loadSkill(name);
 	}
 
-	async send(message: UserMessage, model: string, extraInstructions: string, events: AgentEvents, signal: AbortSignal): Promise<string | undefined> {
+	async send(message: UserMessage, model: string, extraInstructions: string, webSearchEnabled: boolean, events: AgentEvents, signal: AbortSignal): Promise<string | undefined> {
 		this.history.push({ role: "user", content: userContent(message) });
 		const overview = await this.tools.overview();
 		const instructions = () =>
@@ -85,6 +86,9 @@ export class Agent {
 				`Current time (UTC): ${new Date().toISOString().slice(0, 19)}Z. Model: ${model}.`,
 				overview,
 				this.tools.skillsPrompt(this.loadedSkills()),
+				webSearchEnabled
+					? "Internet search is enabled for this turn. Search the web when current or external information is relevant, and cite web sources with clickable links. Continue to search the vault for questions about the user's own notes; distinguish vault evidence from web information."
+					: "Internet search is disabled. Answer using the user's vault and model knowledge only; do not claim to have checked external sources.",
 				...[...this.skills].map(([name, body]) => `# Loaded skill: ${name}\n\n${body}`),
 				extraInstructions.trim(),
 			]
@@ -97,15 +101,23 @@ export class Agent {
 				model,
 				instructions: instructions(),
 				input: this.history,
-				tools: this.tools.definitions(),
+				tools: [...this.tools.definitions(), ...(webSearchEnabled ? [{ type: "web_search" }] : [])],
 				...(this.sendReasoning ? { include: ["reasoning.encrypted_content"] } : {}),
 			}, events, signal);
 			this.releaseTransientVisionMessages();
 
 			const calls: JsonRecord[] = [];
 			for (const item of result.output) {
+				if (item.type === "web_search_call") events.onWebSearch();
+				const citations = webSearchEnabled ? citationLinks(item) : [];
+				if (citations.length) events.onText(`\n\nSources:\n${citations.map((citation) => `- [${citation.title}](${citation.url})`).join("\n")}`);
 				const input = this.toInput(item);
-				if (input) this.history.push(input);
+				if (input) {
+					if (citations.length && input.role === "assistant" && typeof input.content === "string") {
+						input.content += `\n\nSources:\n${citations.map((citation) => `- [${citation.title}](${citation.url})`).join("\n")}`;
+					}
+					this.history.push(input);
+				}
 				if (item.type === "function_call") calls.push(item);
 			}
 			events.onRoundEnd();
@@ -221,6 +233,23 @@ export class Agent {
 				return undefined;
 		}
 	}
+}
+
+function citationLinks(item: JsonRecord): { title: string; url: string }[] {
+	if (item.type !== "message" || !Array.isArray(item.content)) return [];
+	const citations: { title: string; url: string }[] = [];
+	for (const rawPart of item.content) {
+		const part = rawPart as JsonRecord;
+		if (!Array.isArray(part.annotations)) continue;
+		for (const rawAnnotation of part.annotations) {
+			const annotation = rawAnnotation as JsonRecord;
+			const citation = annotation.url_citation as JsonRecord | undefined;
+			const url = asString(citation?.url);
+			if (!url || citations.some((entry) => entry.url === url)) continue;
+			citations.push({ title: asString(citation?.title) ?? url, url });
+		}
+	}
+	return citations;
 }
 
 async function sequential<T>(tasks: (() => Promise<T>)[]): Promise<T[]> {
