@@ -2,7 +2,7 @@ import { App, getAllTags, MarkdownView, normalizePath, prepareSimpleSearch, Sear
 import { askUser } from "./ask-modal";
 import { confirmChange } from "./changes";
 import { asRecord, asString, JsonRecord, parseJson } from "./json";
-import { PdfTextReader } from "./pdf";
+import { PdfReadExecution, PdfTextReader } from "./pdf";
 import type { VaultScoutSettings } from "./settings";
 import { ensureFolder, SkillLibrary } from "./skills";
 
@@ -14,6 +14,11 @@ const PRISM_WAIT = 10_000;
 export interface ToolCall {
 	name: string;
 	args: JsonRecord;
+}
+
+export interface ToolExecutionResult {
+	output: string;
+	images?: PdfReadExecution["images"];
 }
 
 const pathParam = (description: string) => ({ type: "string", description });
@@ -68,8 +73,9 @@ export class VaultTools {
 				type: "function",
 				name: "read_pdf",
 				description:
-					"Extract selectable text from a PDF stored in the vault, with page numbers. Read only the pages relevant to the question. " +
-					"Continue from next_page and next_offset when returned. Scanned image pages have no extractable text.",
+					"Read a PDF stored in the vault. Extracts selectable text with page numbers and automatically sends scanned pages to vision. " +
+					"Set include_visual=true when asked to inspect figures, diagrams, labels, colors, screenshots, or other page visuals. " +
+					"Continue from next_page/next_offset and visual_pages_remaining when returned.",
 				parameters: {
 					type: "object",
 					properties: {
@@ -77,6 +83,7 @@ export class VaultTools {
 						start_page: { type: "integer", description: "First page to read, starting at 1. Default 1." },
 						offset: { type: "integer", description: "Character offset within start_page when continuing a long page. Default 0." },
 						max_pages: { type: "integer", description: "Number of pages to read, 1-10. Default 5." },
+						include_visual: { type: "boolean", description: "Render up to 3 pages and inspect them as images for figures, diagrams, screenshots, labels, colors, or scanned text. Default false." },
 					},
 					required: ["path"],
 				},
@@ -257,11 +264,16 @@ export class VaultTools {
 		return { name, args: asRecord(parseJson(argumentsJson)) ?? {} };
 	}
 
-	async execute(call: ToolCall): Promise<string> {
+	async execute(call: ToolCall): Promise<ToolExecutionResult> {
 		try {
-			return JSON.stringify(await this.run(call));
+			const result = await this.run(call);
+			if (call.name === "read_pdf" && isPdfReadExecution(result)) {
+				const pdf = result as PdfReadExecution;
+				return { output: JSON.stringify(pdf.result), ...(pdf.images.length ? { images: pdf.images } : {}) };
+			}
+			return { output: JSON.stringify(result) };
 		} catch (error) {
-			return JSON.stringify({ error: error instanceof Error ? error.message : String(error) });
+			return { output: JSON.stringify({ error: error instanceof Error ? error.message : String(error) }) };
 		}
 	}
 
@@ -389,8 +401,9 @@ export class VaultTools {
 		if (file.extension.toLowerCase() !== "pdf") return { error: "read_pdf only accepts PDF files." };
 		const startPage = Math.max(typeof args.start_page === "number" ? Math.floor(args.start_page) : 1, 1);
 		const offset = Math.max(typeof args.offset === "number" ? Math.floor(args.offset) : 0, 0);
-		const maxPages = Math.min(Math.max(typeof args.max_pages === "number" ? Math.floor(args.max_pages) : 5, 1), 10);
-		return this.pdf.read(file, startPage, offset, maxPages);
+		const includeVisual = args.include_visual === true;
+		const maxPages = Math.min(Math.max(typeof args.max_pages === "number" ? Math.floor(args.max_pages) : 5, 1), includeVisual ? 3 : 10);
+		return this.pdf.read(file, startPage, offset, maxPages, includeVisual);
 	}
 
 	private list(args: JsonRecord) {
@@ -602,6 +615,10 @@ export class VaultTools {
 }
 
 const declined = { declined: true, message: "The user rejected this change. Do not retry it unchanged; ask what to do instead." };
+
+function isPdfReadExecution(value: unknown): value is PdfReadExecution {
+	return !!value && typeof value === "object" && "result" in value && "images" in value && Array.isArray(value.images);
+}
 
 function snippets(content: string, match: SearchResult | null): string[] {
 	if (!match) return [content.slice(0, SNIPPET_RADIUS * 2).replace(/\s+/g, " ").trim()];

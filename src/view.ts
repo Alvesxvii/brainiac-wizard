@@ -32,7 +32,7 @@ function toolLabel(call: ToolCall): string {
 		case "read_note":
 			return `Reading ${arg("path")}`;
 		case "read_pdf":
-			return `Reading PDF ${arg("path")} · page ${typeof call.args.start_page === "number" ? call.args.start_page : 1}`;
+			return `Reading PDF ${arg("path")} · page ${typeof call.args.start_page === "number" ? call.args.start_page : 1}${call.args.include_visual === true ? " · visual" : ""}`;
 		case "list_folder":
 			return `Listing ${arg("path") || "vault root"}`;
 		case "get_links":

@@ -5,6 +5,8 @@ import type { PDFDocumentProxy } from "pdfjs-dist/legacy/build/pdf.mjs";
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 const MAX_PAGES_PER_READ = 10;
 const MAX_CHARS_PER_READ = 16_000;
+const MAX_VISUAL_PAGES_PER_READ = 3;
+const MAX_RENDERED_SIDE = 1800;
 
 export interface PdfReadResult {
 	path: string;
@@ -13,6 +15,20 @@ export interface PdfReadResult {
 	next_page?: number;
 	next_offset?: number;
 	no_text_pages?: number[];
+	visual_pages?: number[];
+	visual_pages_remaining?: number[];
+	visual_render_errors?: number[];
+}
+
+export interface PdfPageImage {
+	path: string;
+	page: number;
+	dataUrl: string;
+}
+
+export interface PdfReadExecution {
+	result: PdfReadResult;
+	images: PdfPageImage[];
 }
 
 /** Extracts text locally from one PDF at a time, keeping the parsed document for follow-up page reads. */
@@ -29,14 +45,14 @@ export class PdfTextReader {
 		this.standardFontDataUrl = `${adapter.getResourcePath(normalizePath(`${pluginDir}/standard_fonts`))}/`;
 	}
 
-	async read(file: TFile, startPage: number, offset: number, requestedPages: number): Promise<PdfReadResult> {
+	async read(file: TFile, startPage: number, offset: number, requestedPages: number, includeVisual: boolean): Promise<PdfReadExecution> {
 		if (file.stat.size > MAX_PDF_BYTES) {
 			throw new Error("This PDF is larger than 25 MB. Split it into smaller files and try again.");
 		}
 		const document = await this.open(file);
 		if (startPage > document.numPages) throw new Error(`Page ${startPage} is beyond the end of this PDF (${document.numPages} pages).`);
 
-		const pageLimit = Math.min(Math.max(requestedPages, 1), MAX_PAGES_PER_READ);
+		const pageLimit = Math.min(Math.max(requestedPages, 1), includeVisual ? MAX_VISUAL_PAGES_PER_READ : MAX_PAGES_PER_READ);
 		const pages: PdfReadResult["pages"] = [];
 		const noTextPages: number[] = [];
 		let remaining = MAX_CHARS_PER_READ;
@@ -74,12 +90,29 @@ export class PdfTextReader {
 			nextPage = startPage + pages.length;
 			nextOffset = 0;
 		}
+		const pagesToRender = includeVisual ? pages.map(({ page }) => page) : noTextPages;
+		const renderedPages = pagesToRender.slice(0, MAX_VISUAL_PAGES_PER_READ);
+		const images: PdfPageImage[] = [];
+		const renderErrors: number[] = [];
+		for (const pageNumber of renderedPages) {
+			try {
+				images.push({ path: file.path, page: pageNumber, dataUrl: await this.renderPage(document, pageNumber) });
+			} catch {
+				renderErrors.push(pageNumber);
+			}
+		}
 		return {
-			path: file.path,
-			total_pages: document.numPages,
-			pages,
-			...(nextPage === undefined ? {} : { next_page: nextPage, next_offset: nextOffset ?? 0 }),
-			...(noTextPages.length ? { no_text_pages: noTextPages } : {}),
+			result: {
+				path: file.path,
+				total_pages: document.numPages,
+				pages,
+				...(nextPage === undefined ? {} : { next_page: nextPage, next_offset: nextOffset ?? 0 }),
+				...(noTextPages.length ? { no_text_pages: noTextPages } : {}),
+				...(images.length ? { visual_pages: images.map(({ page }) => page) } : {}),
+				...(pagesToRender.length > renderedPages.length ? { visual_pages_remaining: pagesToRender.slice(renderedPages.length) } : {}),
+				...(renderErrors.length ? { visual_render_errors: renderErrors } : {}),
+			},
+			images,
 		};
 	}
 
@@ -109,6 +142,26 @@ export class PdfTextReader {
 		} catch (error) {
 			await loadingTask.destroy();
 			throw error;
+		}
+	}
+
+	private async renderPage(document: PDFDocumentProxy, pageNumber: number): Promise<string> {
+		const page = await document.getPage(pageNumber);
+		const initialViewport = page.getViewport({ scale: 1 });
+		const scale = Math.min(MAX_RENDERED_SIDE / Math.max(initialViewport.width, initialViewport.height), 2);
+		const viewport = page.getViewport({ scale });
+		const canvas = window.document.createElement("canvas");
+		canvas.width = Math.ceil(viewport.width);
+		canvas.height = Math.ceil(viewport.height);
+		const context = canvas.getContext("2d");
+		if (!context) throw new Error("Could not render this PDF page as an image.");
+		try {
+			await page.render({ canvasContext: context, viewport }).promise;
+			return canvas.toDataURL("image/jpeg", 0.85);
+		} finally {
+			canvas.width = 0;
+			canvas.height = 0;
+			page.cleanup();
 		}
 	}
 }
