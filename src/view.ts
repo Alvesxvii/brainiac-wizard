@@ -31,6 +31,8 @@ function toolLabel(call: ToolCall): string {
 			return `Searching “${arg("query")}”`;
 		case "read_note":
 			return `Reading ${arg("path")}`;
+		case "read_pdf":
+			return `Reading PDF ${arg("path")} · page ${typeof call.args.start_page === "number" ? call.args.start_page : 1}`;
 		case "list_folder":
 			return `Listing ${arg("path") || "vault root"}`;
 		case "get_links":

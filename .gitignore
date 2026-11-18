@@ -1,4 +1,5 @@
 node_modules/
 main.js
+pdf.worker.mjs
 data.json
 .DS_Store

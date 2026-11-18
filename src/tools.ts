@@ -2,6 +2,7 @@ import { App, getAllTags, MarkdownView, normalizePath, prepareSimpleSearch, Sear
 import { askUser } from "./ask-modal";
 import { confirmChange } from "./changes";
 import { asRecord, asString, JsonRecord, parseJson } from "./json";
+import { PdfTextReader } from "./pdf";
 import type { VaultScoutSettings } from "./settings";
 import { ensureFolder, SkillLibrary } from "./skills";
 
@@ -19,7 +20,15 @@ const pathParam = (description: string) => ({ type: "string", description });
 
 /** The model's tools: read the vault, change notes with the user's approval, load skills, check Prism blocks. */
 export class VaultTools {
-	constructor(private app: App, private settings: () => VaultScoutSettings, private skills: SkillLibrary) {}
+	private pdf: PdfTextReader;
+
+	constructor(private app: App, private settings: () => VaultScoutSettings, private skills: SkillLibrary, pluginDir: string) {
+		this.pdf = new PdfTextReader(app, pluginDir);
+	}
+
+	async dispose(): Promise<void> {
+		await this.pdf.dispose();
+	}
 
 	definitions(): JsonRecord[] {
 		const tools: JsonRecord[] = [
@@ -51,6 +60,23 @@ export class VaultTools {
 					properties: {
 						path: pathParam("Vault path, e.g. 'Folder/Note.md'. A note name also works."),
 						offset: { type: "integer", description: "Character offset to start from. Default 0." },
+					},
+					required: ["path"],
+				},
+			},
+			{
+				type: "function",
+				name: "read_pdf",
+				description:
+					"Extract selectable text from a PDF stored in the vault, with page numbers. Read only the pages relevant to the question. " +
+					"Continue from next_page and next_offset when returned. Scanned image pages have no extractable text.",
+				parameters: {
+					type: "object",
+					properties: {
+						path: pathParam("Vault path to a PDF, for example 'Papers/Study.pdf'."),
+						start_page: { type: "integer", description: "First page to read, starting at 1. Default 1." },
+						offset: { type: "integer", description: "Character offset within start_page when continuing a long page. Default 0." },
+						max_pages: { type: "integer", description: "Number of pages to read, 1-10. Default 5." },
 					},
 					required: ["path"],
 				},
@@ -245,6 +271,8 @@ export class VaultTools {
 				return this.search(args);
 			case "read_note":
 				return this.read(args);
+			case "read_pdf":
+				return this.readPdf(args);
 			case "list_folder":
 				return this.list(args);
 			case "get_links":
@@ -353,6 +381,16 @@ export class VaultTools {
 			content: chunk,
 			...(end < content.length ? { next_offset: end } : {}),
 		};
+	}
+
+	private async readPdf(args: JsonRecord) {
+		const file = this.resolve(asString(args.path) ?? "");
+		if (!file) return { error: "PDF not found. Use list_folder to find its vault path." };
+		if (file.extension.toLowerCase() !== "pdf") return { error: "read_pdf only accepts PDF files." };
+		const startPage = Math.max(typeof args.start_page === "number" ? Math.floor(args.start_page) : 1, 1);
+		const offset = Math.max(typeof args.offset === "number" ? Math.floor(args.offset) : 0, 0);
+		const maxPages = Math.min(Math.max(typeof args.max_pages === "number" ? Math.floor(args.max_pages) : 5, 1), 10);
+		return this.pdf.read(file, startPage, offset, maxPages);
 	}
 
 	private list(args: JsonRecord) {

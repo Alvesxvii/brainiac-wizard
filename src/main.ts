@@ -32,7 +32,9 @@ export default class VaultScoutPlugin extends Plugin {
 				await this.saveSettings();
 			},
 		});
-		this.tools = new VaultTools(this.app, () => this.settings, this.skills);
+		const pluginDir = this.manifest.dir ?? `${this.app.vault.configDir}/plugins/${this.manifest.id}`;
+		this.tools = new VaultTools(this.app, () => this.settings, this.skills, pluginDir);
+		this.register(() => void this.tools.dispose());
 		this.register(this.auth.onChange(() => {
 			if (!this.auth.connection) this.models = [];
 		}));

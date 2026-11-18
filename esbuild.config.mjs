@@ -36,9 +36,22 @@ const context = await esbuild.context({
 	outfile: "main.js",
 });
 
+const pdfWorker = await esbuild.context({
+	entryPoints: ["node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"],
+	bundle: true,
+	format: "esm",
+	target: "es2021",
+	logLevel: "info",
+	sourcemap: prod ? false : "inline",
+	treeShaking: true,
+	minify: prod,
+	outfile: "pdf.worker.mjs",
+});
+
 if (prod) {
-	await context.rebuild();
+	await Promise.all([context.rebuild(), pdfWorker.rebuild()]);
+	await Promise.all([context.dispose(), pdfWorker.dispose()]);
 	process.exit(0);
 } else {
-	await context.watch();
+	await Promise.all([context.watch(), pdfWorker.watch()]);
 }

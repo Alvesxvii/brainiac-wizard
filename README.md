@@ -102,6 +102,7 @@ Why the copy-and-paste step? Sign in with ChatGPT sends the browser back to a sm
 |---|---|
 | **Search** | Full-text search over your notes, with folder and tag filters. Results include frontmatter title, description and type plus matching snippets. If no note contains every word, it falls back to the best partial matches. |
 | **Read and follow** | Reads notes (long ones in chunks), lists folders, and follows outgoing links and backlinks. Several reads run in parallel. |
+| **Read PDFs** | Extracts selectable text from PDFs in the vault in page-numbered chunks. Scanned pages need OCR and are not read. The original PDF is never changed. |
 | **Cite** | Every note it relies on is linked in the answer. Tap a link to open the note. |
 | **Write, with approval** | `create_note`, `edit_note` (replaces one exact passage) and `append_to_note`. You see a diff and tap *Apply* or *Reject*. Hidden folders and the Obsidian configuration are off limits. |
 | **Properties** | `get_properties` and `set_properties` read and change frontmatter through Obsidian's own frontmatter API, without touching the note's text. `null` removes a property. You approve the before and after. |
@@ -130,6 +131,7 @@ On a Mac you can also import the skills you already use with Claude Code and Cod
 ## Privacy and network use
 
 - **What goes to OpenAI:** your messages, attached images, and the content of the notes the agent reads or writes, sent to `api.openai.com` under your ChatGPT account. OpenAI's terms for Sign in with ChatGPT apply. Requests are made with `store: false`.
+- **PDFs are extracted on your device.** Text from pages the agent reads is then sent to OpenAI as conversation context. The PDF itself is not modified, copied, or saved as another file.
 - **Your sign-in stays on the device.** Tokens are kept in Obsidian's secret storage on the device (*Settings → Keychain*). They are never written to the vault or plugin settings, so they never sync. Each device signs in separately. *Sign out* revokes the session.
 - **Images are not saved.** A chat note records that an image was attached, not the image itself.
 - **Nothing else is contacted**, except GitHub (`api.github.com`, `raw.githubusercontent.com`) when you install or update a skill. There is no analytics or telemetry, and no server of ours.
