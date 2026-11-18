@@ -34,15 +34,15 @@ class ChangeModal extends Modal {
 	override onOpen(): void {
 		const { contentEl, change } = this;
 		this.setTitle(TITLES[change.action]);
-		contentEl.addClass("vault-scout-change");
-		contentEl.createDiv({ cls: "vault-scout-change-path", text: change.line ? `${change.path}, line ${change.line}` : change.path });
+		contentEl.addClass("brainiac-wizard-change");
+		contentEl.createDiv({ cls: "brainiac-wizard-change-path", text: change.line ? `${change.path}, line ${change.line}` : change.path });
 
-		const diff = contentEl.createDiv({ cls: "vault-scout-diff" });
+		const diff = contentEl.createDiv({ cls: "brainiac-wizard-diff" });
 		for (const [kind, text] of diffLines(change.before ?? "", change.after)) {
-			diff.createDiv({ cls: `vault-scout-diff-line is-${kind}`, text: `${kind === "add" ? "+" : kind === "del" ? "−" : " "} ${text}` });
+			diff.createDiv({ cls: `brainiac-wizard-diff-line is-${kind}`, text: `${kind === "add" ? "+" : kind === "del" ? "−" : " "} ${text}` });
 		}
 
-		const buttons = contentEl.createDiv({ cls: "vault-scout-modal-buttons" });
+		const buttons = contentEl.createDiv({ cls: "brainiac-wizard-modal-buttons" });
 		new ButtonComponent(buttons).setButtonText("Reject").onClick(() => this.decide(false));
 		new ButtonComponent(buttons).setButtonText("Apply").setCta().onClick(() => this.decide(true));
 	}

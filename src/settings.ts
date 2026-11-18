@@ -51,7 +51,7 @@ export class VaultScoutSettingTab extends PluginSettingTab {
 				items: [
 					{
 						name: "Open chat",
-						desc: "Also in the command palette (Vault Scout: Open chat) and as the telescope icon in the ribbon.",
+						desc: "Also in the command palette (Brainiac Wizard: Open chat) and as the telescope icon in the ribbon.",
 						action: () => void this.plugin.openChat(),
 					},
 					{

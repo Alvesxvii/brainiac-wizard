@@ -32,15 +32,14 @@ export default class VaultScoutPlugin extends Plugin {
 				await this.saveSettings();
 			},
 		});
-		const pluginDir = this.manifest.dir ?? `${this.app.vault.configDir}/plugins/${this.manifest.id}`;
-		this.tools = new VaultTools(this.app, () => this.settings, this.skills, pluginDir);
+		this.tools = new VaultTools(this.app, () => this.settings, this.skills);
 		this.register(() => void this.tools.dispose());
 		this.register(this.auth.onChange(() => {
 			if (!this.auth.connection) this.models = [];
 		}));
 
 		this.registerView(VIEW_TYPE_CHAT, (leaf) => new ChatView(leaf, this));
-		this.addRibbonIcon("telescope", "Open Vault Scout", () => void this.openChat());
+		this.addRibbonIcon("telescope", "Open Brainiac Wizard", () => void this.openChat());
 		this.addCommand({ id: "open-chat", name: "Open chat", callback: () => void this.openChat() });
 		this.addCommand({
 			id: "sign-in",
@@ -65,7 +64,7 @@ export default class VaultScoutPlugin extends Plugin {
 			this.app.workspace.on("editor-menu", (menu, editor, info) => {
 				if (!editor.somethingSelected() || !info.file) return;
 				menu.addItem((item) =>
-					item.setTitle("Ask Vault Scout about selection").setIcon("telescope").onClick(() => void this.askAboutSelection(editor, info)),
+					item.setTitle("Ask Brainiac Wizard about selection").setIcon("telescope").onClick(() => void this.askAboutSelection(editor, info)),
 				);
 			}),
 		);

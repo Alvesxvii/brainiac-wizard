@@ -19,11 +19,11 @@ export class SignInModal extends Modal {
 	override onOpen(): void {
 		const { contentEl } = this;
 		this.setTitle("Sign in with ChatGPT");
-		contentEl.addClass("vault-scout-sign-in");
-		this.errorEl = createDiv({ cls: "vault-scout-error" });
+		contentEl.addClass("brainiac-wizard-sign-in");
+		this.errorEl = createDiv({ cls: "brainiac-wizard-error" });
 
 		const steps = contentEl.createEl("ol");
-		steps.createEl("li", { text: "Open the sign-in page and approve Vault Scout, including plan usage." });
+		steps.createEl("li", { text: "Open the sign-in page and approve Brainiac Wizard, including plan usage." });
 		steps.createEl("li", {
 			text: "The browser then shows a page that cannot be reached. That is expected: the sign-in code is in its address.",
 		});
@@ -37,7 +37,7 @@ export class SignInModal extends Modal {
 		// The URL is prepared up front: opening it after an await is no longer a
 		// direct reaction to the tap, and the app blocks it like a pop-up.
 		let url: string | undefined;
-		const buttons = contentEl.createDiv({ cls: "vault-scout-modal-buttons is-start" });
+		const buttons = contentEl.createDiv({ cls: "brainiac-wizard-modal-buttons is-start" });
 		const open = new ButtonComponent(buttons).setButtonText("Open sign-in page").setCta().setDisabled(true);
 		const copy = new ButtonComponent(buttons).setButtonText("Copy link").setDisabled(true);
 		open.onClick(() => {
@@ -64,7 +64,7 @@ export class SignInModal extends Modal {
 		// A single-line field: on iOS a textarea's keyboard has no key that closes it.
 		this.input = new TextComponent(contentEl).setPlaceholder("Paste the full address here");
 		const field = this.input.inputEl;
-		field.addClass("vault-scout-callback-input");
+		field.addClass("brainiac-wizard-callback-input");
 		field.setAttrs({ enterkeyhint: "go", inputmode: "url", autocapitalize: "off", autocorrect: "off", spellcheck: "false" });
 		this.input.onChange((value) => {
 			// A complete callback address connects right away and closes the keyboard.
@@ -79,7 +79,7 @@ export class SignInModal extends Modal {
 		// Tapping anywhere else in the dialog closes the keyboard.
 		this.registerDismiss(contentEl, field);
 
-		const actions = contentEl.createDiv({ cls: "vault-scout-modal-buttons" });
+		const actions = contentEl.createDiv({ cls: "brainiac-wizard-modal-buttons" });
 		new ButtonComponent(actions).setButtonText("Paste").onClick(async () => {
 			try {
 				this.input.setValue(await navigator.clipboard.readText());

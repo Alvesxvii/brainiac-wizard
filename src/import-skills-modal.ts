@@ -32,7 +32,7 @@ export class ImportSkillsModal extends Modal {
 					}),
 				);
 		}
-		const buttons = contentEl.createDiv({ cls: "vault-scout-modal-buttons" });
+		const buttons = contentEl.createDiv({ cls: "brainiac-wizard-modal-buttons" });
 		const run = new ButtonComponent(buttons).setButtonText("Import").setCta();
 		run.onClick(async () => {
 			if (!this.selected.size) return;

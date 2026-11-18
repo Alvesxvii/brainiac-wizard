@@ -8,11 +8,11 @@ import { ApiError, streamingUnavailableReason } from "./openai";
 import { SignInModal } from "./sign-in-modal";
 import { ToolCall } from "./tools";
 
-export const VIEW_TYPE_CHAT = "vault-scout-chat";
+export const VIEW_TYPE_CHAT = "brainiac-wizard-chat";
 
 const ERROR_HINTS: Record<string, string> = {
 	subscription_sharing_usage_limit_exceeded:
-		"The weekly limit for Vault Scout is reached. Raise it in ChatGPT settings or wait for the reset.",
+		"The weekly limit for Brainiac Wizard is reached. Raise it in ChatGPT settings or wait for the reset.",
 	subscription_sharing_user_not_eligible: "Using your plan in other apps needs ChatGPT Plus or Pro.",
 	subscription_sharing_usage_unavailable: "Plan usage is temporarily unavailable. Try again shortly.",
 	subscription_sharing_invalid_user: "The connection was removed in ChatGPT. Sign in again.",
@@ -94,7 +94,7 @@ export class ChatView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "Vault Scout";
+		return "Brainiac Wizard";
 	}
 
 	override getIcon(): string {
@@ -104,44 +104,44 @@ export class ChatView extends ItemView {
 	override async onOpen(): Promise<void> {
 		const root = this.contentEl;
 		root.empty();
-		root.addClass("vault-scout");
+		root.addClass("brainiac-wizard");
 
-		const header = root.createDiv({ cls: "vault-scout-header" });
+		const header = root.createDiv({ cls: "brainiac-wizard-header" });
 		this.modelDropdown = new DropdownComponent(header).onChange(async (value) => {
 			this.plugin.settings.model = value;
 			await this.plugin.saveSettings();
 		});
-		this.modelDropdown.selectEl.addClass("vault-scout-model");
+		this.modelDropdown.selectEl.addClass("brainiac-wizard-model");
 		this.iconButton(header, "history", "Chats", () => this.pickChat());
 		this.noteButton = this.iconButton(header, "file-text", "Open chat as note", () => {
 			if (this.chat.file) void this.app.workspace.getLeaf("tab").openFile(this.chat.file);
 		});
 		this.iconButton(header, "square-pen", "New chat", () => this.newChat());
 
-		const featureToolbar = root.createDiv({ cls: "vault-scout-feature-toolbar" });
+		const featureToolbar = root.createDiv({ cls: "brainiac-wizard-feature-toolbar" });
 		this.contextButton = this.iconButton(featureToolbar, "book-open", "", () => this.openContextPicker());
-		this.contextButton.addClass("vault-scout-context-button");
+		this.contextButton.addClass("brainiac-wizard-context-button");
 		this.contextToggleButton = this.iconButton(featureToolbar, "eye-off", "", () => void this.toggleContextNotes());
-		this.contextToggleButton.addClass("vault-scout-context-toggle");
+		this.contextToggleButton.addClass("brainiac-wizard-context-toggle");
 		this.updateContextButtons();
 		this.internetButton = this.iconButton(featureToolbar, "globe", "", () => void this.toggleInternetSearch());
-		this.internetButton.addClass("vault-scout-internet-toggle");
+		this.internetButton.addClass("brainiac-wizard-internet-toggle");
 		this.updateInternetButton();
 		// Images: the iOS picker offers the photo library, the camera and files.
-		const picker = featureToolbar.createEl("input", { cls: "vault-scout-file-input", attr: { type: "file", accept: "image/*", multiple: "" } });
+		const picker = featureToolbar.createEl("input", { cls: "brainiac-wizard-file-input", attr: { type: "file", accept: "image/*", multiple: "" } });
 		this.registerDomEvent(picker, "change", () => {
 			void this.addImages(Array.from(picker.files ?? []));
 			picker.value = "";
 		});
-		this.iconButton(featureToolbar, "image-plus", "Attach images", () => picker.click()).addClass("vault-scout-attach");
+		this.iconButton(featureToolbar, "image-plus", "Attach images", () => picker.click()).addClass("brainiac-wizard-attach");
 
-		this.titleEl = root.createDiv({ cls: "vault-scout-title" });
-		this.accountEl = root.createDiv({ cls: "vault-scout-account" });
-		this.messagesEl = root.createDiv({ cls: "vault-scout-messages" });
+		this.titleEl = root.createDiv({ cls: "brainiac-wizard-title" });
+		this.accountEl = root.createDiv({ cls: "brainiac-wizard-account" });
+		this.messagesEl = root.createDiv({ cls: "brainiac-wizard-messages" });
 		this.registerDomEvent(this.messagesEl, "click", (evt) => this.openLink(evt));
 
-		this.attachmentsEl = root.createDiv({ cls: "vault-scout-attachments is-hidden" });
-		const composer = root.createDiv({ cls: "vault-scout-composer" });
+		this.attachmentsEl = root.createDiv({ cls: "brainiac-wizard-attachments is-hidden" });
+		const composer = root.createDiv({ cls: "brainiac-wizard-composer" });
 		this.inputEl = composer.createEl("textarea", { attr: { placeholder: "Ask about your notes…", rows: "3" } });
 		this.registerDomEvent(this.inputEl, "paste", (evt) => {
 			const items = Array.from(evt.clipboardData?.items ?? []);
@@ -195,7 +195,7 @@ export class ChatView extends ItemView {
 		el.toggleClass("is-hidden", !this.selection && !this.images.length);
 		const selection = this.selection;
 		if (selection) {
-			const pill = el.createDiv({ cls: "vault-scout-pill" });
+			const pill = el.createDiv({ cls: "brainiac-wizard-pill" });
 			pill.createSpan({ text: `Selection · ${selection.path.split("/").pop() ?? selection.path}, ${lineLabel(selection)}` });
 			const remove = pill.createEl("button", { cls: "clickable-icon", attr: { "aria-label": "Remove selection" } });
 			setIcon(remove, "x");
@@ -205,7 +205,7 @@ export class ChatView extends ItemView {
 			});
 		}
 		this.images.forEach((url, index) => {
-			const thumb = el.createDiv({ cls: "vault-scout-thumb" });
+			const thumb = el.createDiv({ cls: "brainiac-wizard-thumb" });
 			thumb.createEl("img", { attr: { src: url, alt: `Attached image ${index + 1}` } });
 			const remove = thumb.createEl("button", { cls: "clickable-icon", attr: { "aria-label": "Remove image" } });
 			setIcon(remove, "x");
@@ -237,13 +237,13 @@ export class ChatView extends ItemView {
 		await this.agent.load(this.chat.turns, this.chat.skills);
 		this.clearMessages();
 		for (const turn of this.chat.turns) {
-			this.messagesEl.createDiv({ cls: "vault-scout-message is-user", text: turn.user });
+			this.messagesEl.createDiv({ cls: "brainiac-wizard-message is-user", text: turn.user });
 			if (turn.steps.length) {
 				const steps = new StepList(this.messagesEl);
 				for (const step of turn.steps) steps.add(step);
 				steps.finish();
 			}
-			if (turn.answer) await this.renderMarkdown(this.messagesEl.createDiv({ cls: "vault-scout-message is-assistant" }), turn.answer);
+			if (turn.answer) await this.renderMarkdown(this.messagesEl.createDiv({ cls: "brainiac-wizard-message is-assistant" }), turn.answer);
 		}
 		this.updateHeader();
 		this.messagesEl.scrollTo({ top: this.messagesEl.scrollHeight });
@@ -374,7 +374,7 @@ export class ChatView extends ItemView {
 			}
 		} catch (error) {
 			this.accountEl.removeClass("is-hidden");
-			this.accountEl.createDiv({ cls: "vault-scout-error", text: describe(error) });
+			this.accountEl.createDiv({ cls: "brainiac-wizard-error", text: describe(error) });
 		}
 	}
 
@@ -405,10 +405,10 @@ export class ChatView extends ItemView {
 		this.selection = undefined;
 		this.renderAttachments();
 		this.inputEl.value = "";
-		const userEl = this.messagesEl.createDiv({ cls: "vault-scout-message is-user", text });
-		if (selection) userEl.createDiv({ cls: "vault-scout-message-note", text: `About ${selection.path}, ${lineLabel(selection)}` });
+		const userEl = this.messagesEl.createDiv({ cls: "brainiac-wizard-message is-user", text });
+		if (selection) userEl.createDiv({ cls: "brainiac-wizard-message-note", text: `About ${selection.path}, ${lineLabel(selection)}` });
 		if (images.length) {
-			const strip = userEl.createDiv({ cls: "vault-scout-message-images" });
+			const strip = userEl.createDiv({ cls: "brainiac-wizard-message-images" });
 			for (const url of images) strip.createEl("img", { attr: { src: url, alt: "Attached image" } });
 		}
 
@@ -424,7 +424,7 @@ export class ChatView extends ItemView {
 
 		const abort = (this.abort = new AbortController());
 		this.sendButton.setIcon("square").setTooltip("Stop");
-		let bubble = this.messagesEl.createDiv({ cls: "vault-scout-message is-assistant is-streaming" });
+		let bubble = this.messagesEl.createDiv({ cls: "brainiac-wizard-message is-assistant is-streaming" });
 		const steps = new StepList(this.messagesEl, bubble);
 		let streamed = "";
 		const scroll = () => this.messagesEl.scrollTo({ top: this.messagesEl.scrollHeight });
@@ -433,7 +433,7 @@ export class ChatView extends ItemView {
 			turn.answer = turn.answer ? `${turn.answer}\n\n${streamed}` : streamed;
 			void this.renderMarkdown(bubble, streamed);
 			streamed = "";
-			bubble = this.messagesEl.createDiv({ cls: "vault-scout-message is-assistant is-streaming" });
+			bubble = this.messagesEl.createDiv({ cls: "brainiac-wizard-message is-assistant is-streaming" });
 		};
 
 		try {
@@ -459,11 +459,11 @@ export class ChatView extends ItemView {
 				onRoundEnd: keepRound,
 			}, abort.signal);
 			this.noteStreaming();
-			if (incomplete) this.messagesEl.createDiv({ cls: "vault-scout-error", text: `The answer is incomplete (${incomplete}).` });
+			if (incomplete) this.messagesEl.createDiv({ cls: "brainiac-wizard-error", text: `The answer is incomplete (${incomplete}).` });
 		} catch (error) {
 			this.noteStreaming();
 			keepRound();
-			this.messagesEl.createDiv({ cls: "vault-scout-error", text: describe(error) });
+			this.messagesEl.createDiv({ cls: "brainiac-wizard-error", text: describe(error) });
 		} finally {
 			steps.finish();
 			if (!bubble.hasChildNodes()) bubble.remove();
@@ -486,7 +486,7 @@ export class ChatView extends ItemView {
 		const reason = streamingUnavailableReason();
 		if (!reason || this.streamingNoteShown) return;
 		this.streamingNoteShown = true;
-		this.messagesEl.createDiv({ cls: "vault-scout-tool", text: `Answers arrive at once here, because ${reason}.` });
+		this.messagesEl.createDiv({ cls: "brainiac-wizard-tool", text: `Answers arrive at once here, because ${reason}.` });
 	}
 
 	private async renderMarkdown(el: HTMLElement, markdown: string) {
@@ -526,13 +526,13 @@ class StepList {
 
 	add(label: string) {
 		if (!this.details) {
-			this.details = this.parent.createEl("details", { cls: "vault-scout-steps" });
+			this.details = this.parent.createEl("details", { cls: "brainiac-wizard-steps" });
 			if (this.before) this.parent.insertBefore(this.details, this.before);
 			this.summary = this.details.createEl("summary");
 			this.list = this.details.createDiv();
 		}
 		this.count++;
-		this.list.createDiv({ cls: "vault-scout-tool", text: label });
+		this.list.createDiv({ cls: "brainiac-wizard-tool", text: label });
 		this.summary.setText(`${label} (${this.count})`);
 	}
 

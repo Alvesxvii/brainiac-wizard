@@ -7,7 +7,7 @@ const ISSUER = "https://auth.openai.com";
 const RESOURCE = "https://api.openai.com/v1";
 const SCOPES = "openid profile email offline_access resource.invoke chatgpt.tokens.use.direct";
 const PLAN_SCOPE = "chatgpt.tokens.use.direct";
-const APP_NAME = "Vault Scout";
+const APP_NAME = "Brainiac Wizard";
 // The flow only accepts a 127.0.0.1 callback. Nothing listens there on mobile:
 // the browser shows a connection error and the user pastes that address back.
 const REDIRECT_URI = "http://127.0.0.1:1455/auth/callback";
@@ -19,10 +19,10 @@ const REFRESH_MARGIN = 2 * 60 * 1000;
 // Obsidian's SecretStorage (the device keychain); the host and client IDs are
 // not secret and stay in the vault's localStorage. Idea from Chatting with AI
 // (github.com/o1xhack/obsidian-chatting).
-const KEY_HOST = "vault-scout-host-id";
-const KEY_CLIENT = "vault-scout-client-id";
-const KEY_CONNECTION = "vault-scout-connection";
-const KEY_PENDING = "vault-scout-pending-sign-in";
+const KEY_HOST = "brainiac-wizard-host-id";
+const KEY_CLIENT = "brainiac-wizard-client-id";
+const KEY_CONNECTION = "brainiac-wizard-connection";
+const KEY_PENDING = "brainiac-wizard-pending-sign-in";
 
 export interface Connection {
 	clientId: string;

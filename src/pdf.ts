@@ -1,6 +1,7 @@
-import { App, normalizePath, TFile } from "obsidian";
+import { App, TFile } from "obsidian";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf.mjs";
 import type { PDFDocumentProxy } from "pdfjs-dist/legacy/build/pdf.mjs";
+import { PDFJS_ASSETS } from "./pdfjs-assets.generated";
 
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 const MAX_PAGES_PER_READ = 10;
@@ -33,17 +34,10 @@ export interface PdfReadExecution {
 
 /** Extracts text locally from one PDF at a time, keeping the parsed document for follow-up page reads. */
 export class PdfTextReader {
-	private readonly workerSrc: string;
-	private readonly cMapUrl: string;
-	private readonly standardFontDataUrl: string;
+	private workerSrc: string | undefined;
 	private active: { path: string; mtime: number; document: PDFDocumentProxy } | undefined;
 
-	constructor(private app: App, pluginDir: string) {
-		const adapter = app.vault.adapter;
-		this.workerSrc = adapter.getResourcePath(normalizePath(`${pluginDir}/pdf.worker.mjs`));
-		this.cMapUrl = `${adapter.getResourcePath(normalizePath(`${pluginDir}/cmaps`))}/`;
-		this.standardFontDataUrl = `${adapter.getResourcePath(normalizePath(`${pluginDir}/standard_fonts`))}/`;
-	}
+	constructor(private app: App) {}
 
 	async read(file: TFile, startPage: number, offset: number, requestedPages: number, includeVisual: boolean): Promise<PdfReadExecution> {
 		if (file.stat.size > MAX_PDF_BYTES) {
@@ -120,18 +114,22 @@ export class PdfTextReader {
 		const active = this.active;
 		this.active = undefined;
 		if (active) await active.document.destroy();
+		if (this.workerSrc) URL.revokeObjectURL(this.workerSrc);
+		this.workerSrc = undefined;
 	}
 
 	private async open(file: TFile): Promise<PDFDocumentProxy> {
 		if (this.active?.path === file.path && this.active.mtime === file.stat.mtime) return this.active.document;
 		await this.dispose();
+		this.workerSrc ??= URL.createObjectURL(new Blob([PDFJS_ASSETS.worker], { type: "text/javascript" }));
 		GlobalWorkerOptions.workerSrc = this.workerSrc;
 		const data = new Uint8Array(await this.app.vault.readBinary(file));
 		const loadingTask = getDocument({
 			data,
-			cMapUrl: this.cMapUrl,
 			cMapPacked: true,
-			standardFontDataUrl: this.standardFontDataUrl,
+			CMapReaderFactory: EmbeddedCMapReaderFactory,
+			StandardFontDataFactory: EmbeddedStandardFontDataFactory,
+			useWorkerFetch: false,
 			isEvalSupported: false,
 			useSystemFonts: true,
 		});
@@ -163,5 +161,46 @@ export class PdfTextReader {
 			canvas.height = 0;
 			page.cleanup();
 		}
+	}
+}
+
+function decodeBase64(value: string): Uint8Array {
+	const binary = atob(value);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+	return bytes;
+}
+
+const cmapCache = new Map<string, Uint8Array>();
+const fontCache = new Map<string, Uint8Array>();
+
+class EmbeddedCMapReaderFactory {
+	constructor(_options: { baseUrl?: string | null; isCompressed?: boolean }) {}
+
+	async fetch({ name }: { name: string }): Promise<{ cMapData: Uint8Array; isCompressed: boolean }> {
+		const filename = `${name}.bcmap`;
+		let cMapData = cmapCache.get(filename);
+		if (!cMapData) {
+			const encoded = PDFJS_ASSETS.cmaps[filename as keyof typeof PDFJS_ASSETS.cmaps];
+			if (!encoded) throw new Error(`The PDF character map ${filename} is not bundled.`);
+			cMapData = decodeBase64(encoded);
+			cmapCache.set(filename, cMapData);
+		}
+		return { cMapData, isCompressed: true };
+	}
+}
+
+class EmbeddedStandardFontDataFactory {
+	constructor(_options: { baseUrl?: string | null }) {}
+
+	async fetch({ filename }: { filename: string }): Promise<Uint8Array> {
+		let fontData = fontCache.get(filename);
+		if (!fontData) {
+			const encoded = PDFJS_ASSETS.standardFonts[filename as keyof typeof PDFJS_ASSETS.standardFonts];
+			if (!encoded) throw new Error(`The PDF standard font ${filename} is not bundled.`);
+			fontData = decodeBase64(encoded);
+			fontCache.set(filename, fontData);
+		}
+		return fontData;
 	}
 }

@@ -1,5 +1,6 @@
 node_modules/
 main.js
 pdf.worker.mjs
+src/pdfjs-assets.generated.ts
 data.json
 .DS_Store

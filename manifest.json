@@ -1,9 +1,10 @@
 {
-	"id": "vault-scout",
-	"name": "Vault Scout",
-	"version": "0.4.0",
+	"id": "brainiac-wizard",
+	"name": "Brainiac Wizard",
+	"version": "0.5.0",
 	"minAppVersion": "1.13.0",
-	"description": "Research your vault with ChatGPT on desktop and mobile, billed to your own ChatGPT plan.",
-	"author": "floorianmb",
+	"description": "Chat with your Obsidian vault using your ChatGPT plan. Search notes and PDFs, add context notes, attach images, and optionally search the web.",
+	"author": "Alvesxvii",
+	"authorUrl": "https://github.com/Alvesxvii",
 	"isDesktopOnly": false
 }

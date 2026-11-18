@@ -27,8 +27,8 @@ const pathParam = (description: string) => ({ type: "string", description });
 export class VaultTools {
 	private pdf: PdfTextReader;
 
-	constructor(private app: App, private settings: () => VaultScoutSettings, private skills: SkillLibrary, pluginDir: string) {
-		this.pdf = new PdfTextReader(app, pluginDir);
+	constructor(private app: App, private settings: () => VaultScoutSettings, private skills: SkillLibrary) {
+		this.pdf = new PdfTextReader(app);
 	}
 
 	async dispose(): Promise<void> {
@@ -50,7 +50,7 @@ export class VaultTools {
 						query: { type: "string", description: "Space-separated keywords." },
 						folder: { type: "string", description: "Only search inside this folder path." },
 						tag: { type: "string", description: "Only notes with this tag, without #." },
-						include_chats: { type: "boolean", description: "Also search earlier Vault Scout chats. Default false." },
+						include_chats: { type: "boolean", description: "Also search earlier Brainiac Wizard chats. Default false." },
 						limit: { type: "integer", description: "Maximum results, 1-25. Default 10." },
 					},
 					required: ["query"],
@@ -242,7 +242,7 @@ export class VaultTools {
 		const walk = (folder: TFolder, depth: number) => {
 			for (const child of [...folder.children].sort((a, b) => a.name.localeCompare(b.name))) {
 				if (!(child instanceof TFolder) || child.name.startsWith(".") || skip.includes(child.path)) continue;
-				// A folder that only holds the chat and skills folders is Vault Scout's own.
+				// A folder that only holds the chat and skills folders is Brainiac Wizard's own.
 				const own = child.children.every((c) => c instanceof TFolder && skip.includes(c.path));
 				if (own && child.children.length) continue;
 				const notes = child.children.filter((c) => c instanceof TFile && c.extension === "md").length;

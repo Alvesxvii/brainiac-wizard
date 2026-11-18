@@ -1,4 +1,4 @@
-.vault-scout {
+.brainiac-wizard {
 	height: 100%;
 	display: flex;
 	flex-direction: column;
@@ -8,22 +8,22 @@
 
 /* Phones: keep the composer above Obsidian's floating navigation bar. The
    variable covers the bar and the safe area and shrinks while the keyboard is open. */
-.is-phone .vault-scout {
+.is-phone .brainiac-wizard {
 	padding-bottom: max(var(--size-4-2), calc(var(--view-bottom-spacing, 0px) + var(--size-4-2)));
 }
 
-.vault-scout-header {
+.brainiac-wizard-header {
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-2);
 }
 
-.vault-scout-model {
+.brainiac-wizard-model {
 	flex: 1;
 	min-width: 0;
 }
 
-.vault-scout-account {
+.brainiac-wizard-account {
 	display: flex;
 	flex-direction: column;
 	gap: var(--size-4-2);
@@ -33,11 +33,11 @@
 	color: var(--text-muted);
 }
 
-.vault-scout .is-hidden {
+.brainiac-wizard .is-hidden {
 	display: none;
 }
 
-.vault-scout-title {
+.brainiac-wizard-title {
 	font-size: var(--font-ui-small);
 	color: var(--text-muted);
 	overflow: hidden;
@@ -45,7 +45,7 @@
 	white-space: nowrap;
 }
 
-.vault-scout-messages {
+.brainiac-wizard-messages {
 	flex: 1;
 	overflow-y: auto;
 	display: flex;
@@ -54,95 +54,95 @@
 	user-select: text;
 }
 
-.vault-scout-message {
+.brainiac-wizard-message {
 	padding: var(--size-4-2) var(--size-4-3);
 	border-radius: var(--radius-m);
 	overflow-wrap: anywhere;
 }
 
-.vault-scout-message.is-user {
+.brainiac-wizard-message.is-user {
 	align-self: flex-end;
 	max-width: 85%;
 	background: var(--background-modifier-hover);
 	white-space: pre-wrap;
 }
 
-.vault-scout-message.is-assistant > :first-child {
+.brainiac-wizard-message.is-assistant > :first-child {
 	margin-top: 0;
 }
 
-.vault-scout-message.is-assistant > :last-child {
+.brainiac-wizard-message.is-assistant > :last-child {
 	margin-bottom: 0;
 }
 
-.vault-scout-message.is-streaming {
+.brainiac-wizard-message.is-streaming {
 	white-space: pre-wrap;
 }
 
-.vault-scout-steps {
+.brainiac-wizard-steps {
 	font-size: var(--font-ui-smaller);
 	color: var(--text-faint);
 	padding: 0 var(--size-4-3);
 }
 
-.vault-scout-steps summary {
+.brainiac-wizard-steps summary {
 	cursor: pointer;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.vault-scout-steps .vault-scout-tool {
+.brainiac-wizard-steps .brainiac-wizard-tool {
 	padding: 0 var(--size-4-3);
 }
 
-.vault-scout-tool {
+.brainiac-wizard-tool {
 	font-size: var(--font-ui-smaller);
 	color: var(--text-faint);
 	padding: 0 var(--size-4-3);
 }
 
-.vault-scout-error {
+.brainiac-wizard-error {
 	color: var(--text-error);
 	font-size: var(--font-ui-small);
 	padding: 0 var(--size-4-3);
 }
 
-.vault-scout-composer {
+.brainiac-wizard-composer {
 	display: flex;
 	align-items: flex-end;
 	gap: var(--size-4-2);
 }
 
-.vault-scout-feature-toolbar {
+.brainiac-wizard-feature-toolbar {
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-2);
 	min-height: var(--input-height);
 }
 
-.vault-scout-composer textarea {
+.brainiac-wizard-composer textarea {
 	flex: 1;
 	resize: vertical;
 	min-height: 3em;
 }
 
-.vault-scout-sign-in ol {
+.brainiac-wizard-sign-in ol {
 	padding-inline-start: 1.4em;
 }
 
-.vault-scout-sign-in li {
+.brainiac-wizard-sign-in li {
 	margin-bottom: var(--size-4-1);
 }
 
-.vault-scout-callback-input {
+.brainiac-wizard-callback-input {
 	width: 100%;
 	margin-top: var(--size-4-3);
 	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 }
 
-.vault-scout-modal-buttons {
+.brainiac-wizard-modal-buttons {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: flex-end;
@@ -150,7 +150,7 @@
 	margin-top: var(--size-4-2);
 }
 
-.vault-scout-change-path {
+.brainiac-wizard-change-path {
 	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
@@ -158,7 +158,7 @@
 	overflow-wrap: anywhere;
 }
 
-.vault-scout-diff {
+.brainiac-wizard-diff {
 	max-height: 50vh;
 	overflow: auto;
 	padding: var(--size-4-2);
@@ -170,21 +170,21 @@
 	overflow-wrap: anywhere;
 }
 
-.vault-scout-diff-line.is-add {
+.brainiac-wizard-diff-line.is-add {
 	background: rgba(var(--color-green-rgb), 0.15);
 }
 
-.vault-scout-diff-line.is-del {
+.brainiac-wizard-diff-line.is-del {
 	background: rgba(var(--color-red-rgb), 0.15);
 	text-decoration: line-through;
 	color: var(--text-muted);
 }
 
-.vault-scout-modal-buttons.is-start {
+.brainiac-wizard-modal-buttons.is-start {
 	justify-content: flex-start;
 }
 
-.vault-scout-chat-row {
+.brainiac-wizard-chat-row {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -192,7 +192,7 @@
 	width: 100%;
 }
 
-.vault-scout-chat-row-label {
+.brainiac-wizard-chat-row-label {
 	min-width: 0;
 	flex: 1;
 	overflow: hidden;
@@ -200,54 +200,54 @@
 	white-space: nowrap;
 }
 
-.vault-scout-chat-delete {
+.brainiac-wizard-chat-delete {
 	flex: 0 0 auto;
 	color: var(--text-muted);
 }
 
-.vault-scout-chat-delete:hover {
+.brainiac-wizard-chat-delete:hover {
 	color: var(--text-error);
 }
 
-.vault-scout-delete-note {
+.brainiac-wizard-delete-note {
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);
 }
 
-.vault-scout-file-input {
+.brainiac-wizard-file-input {
 	display: none;
 }
 
-.vault-scout-feature-toolbar .vault-scout-attach,
-.vault-scout-feature-toolbar .vault-scout-internet-toggle,
-.vault-scout-feature-toolbar .vault-scout-context-button,
-.vault-scout-feature-toolbar .vault-scout-context-toggle {
+.brainiac-wizard-feature-toolbar .brainiac-wizard-attach,
+.brainiac-wizard-feature-toolbar .brainiac-wizard-internet-toggle,
+.brainiac-wizard-feature-toolbar .brainiac-wizard-context-button,
+.brainiac-wizard-feature-toolbar .brainiac-wizard-context-toggle {
 	color: var(--text-muted);
 }
 
-.vault-scout-feature-toolbar .vault-scout-internet-toggle.is-active {
+.brainiac-wizard-feature-toolbar .brainiac-wizard-internet-toggle.is-active {
 	color: var(--text-accent);
 }
 
-.vault-scout-feature-toolbar .vault-scout-context-toggle.is-active {
+.brainiac-wizard-feature-toolbar .brainiac-wizard-context-toggle.is-active {
 	color: var(--text-accent);
 }
 
-.vault-scout-feature-toolbar .vault-scout-context-toggle:disabled {
+.brainiac-wizard-feature-toolbar .brainiac-wizard-context-toggle:disabled {
 	opacity: 0.45;
 }
 
-.vault-scout-context-description {
+.brainiac-wizard-context-description {
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);
 }
 
-.vault-scout-context-search {
+.brainiac-wizard-context-search {
 	width: 100%;
 	margin-bottom: var(--size-4-2);
 }
 
-.vault-scout-context-selected {
+.brainiac-wizard-context-selected {
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--size-4-1);
@@ -256,7 +256,7 @@
 	margin-bottom: var(--size-4-2);
 }
 
-.vault-scout-context-pill {
+.brainiac-wizard-context-pill {
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-1);
@@ -267,20 +267,20 @@
 	font-size: var(--font-ui-smaller);
 }
 
-.vault-scout-context-pill span {
+.brainiac-wizard-context-pill span {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.vault-scout-context-results {
+.brainiac-wizard-context-results {
 	max-height: 42vh;
 	overflow-y: auto;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-m);
 }
 
-.vault-scout-context-result {
+.brainiac-wizard-context-result {
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-2);
@@ -288,36 +288,36 @@
 	cursor: pointer;
 }
 
-.vault-scout-context-result + .vault-scout-context-result {
+.brainiac-wizard-context-result + .brainiac-wizard-context-result {
 	border-top: 1px solid var(--background-modifier-border);
 }
 
-.vault-scout-context-result-path {
+.brainiac-wizard-context-result-path {
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.vault-scout-context-empty,
-.vault-scout-context-hint {
+.brainiac-wizard-context-empty,
+.brainiac-wizard-context-hint {
 	display: block;
 	padding: var(--size-4-2);
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 }
 
-.vault-scout-context-buttons {
+.brainiac-wizard-context-buttons {
 	flex-wrap: wrap;
 }
 
-.vault-scout-attachments {
+.brainiac-wizard-attachments {
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--size-4-2);
 }
 
-.vault-scout-pill {
+.brainiac-wizard-pill {
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-1);
@@ -331,20 +331,20 @@
 	text-overflow: ellipsis;
 }
 
-.vault-scout-thumb {
+.brainiac-wizard-thumb {
 	position: relative;
 	width: 64px;
 	height: 64px;
 }
 
-.vault-scout-thumb img {
+.brainiac-wizard-thumb img {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
 	border-radius: var(--radius-s);
 }
 
-.vault-scout-thumb button {
+.brainiac-wizard-thumb button {
 	position: absolute;
 	top: 2px;
 	right: 2px;
@@ -353,19 +353,19 @@
 	padding: 2px;
 }
 
-.vault-scout-message-note {
+.brainiac-wizard-message-note {
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
 	margin-top: var(--size-4-1);
 }
 
-.vault-scout-message-images {
+.brainiac-wizard-message-images {
 	display: flex;
 	gap: var(--size-4-1);
 	margin-top: var(--size-4-2);
 }
 
-.vault-scout-message-images img {
+.brainiac-wizard-message-images img {
 	width: 72px;
 	height: 72px;
 	object-fit: cover;

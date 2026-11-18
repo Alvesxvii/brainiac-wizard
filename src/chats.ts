@@ -1,7 +1,8 @@
 import { App, ButtonComponent, FuzzyMatch, FuzzySuggestModal, Modal, Notice, moment, normalizePath, setIcon, TFile } from "obsidian";
 import { ensureFolder } from "./skills";
 
-export const CHAT_TYPE = "Agent Chat";
+export const CHAT_TYPE = "Brainiac Wizard Chat";
+const LEGACY_CHAT_TYPE = "Agent Chat";
 
 /** One question with the research steps and the answer it produced. */
 export interface ChatTurn {
@@ -46,7 +47,8 @@ export class ChatStore {
 	}
 
 	isChat(file: TFile): boolean {
-		return this.app.metadataCache.getFileCache(file)?.frontmatter?.type === CHAT_TYPE;
+		const type = this.app.metadataCache.getFileCache(file)?.frontmatter?.type;
+		return type === CHAT_TYPE || type === LEGACY_CHAT_TYPE;
 	}
 
 	/** Chats in the chat folder, most recently changed first. */
@@ -121,7 +123,7 @@ export class ChatStore {
 	/** Permanently deletes a saved chat note. Chat images are not stored in the vault. */
 	async delete(file: TFile): Promise<void> {
 		const prefix = `${normalizePath(this.folder())}/`;
-		if (!file.path.startsWith(prefix) || !this.isChat(file)) throw new Error("This file is not a saved Vault Scout chat.");
+		if (!file.path.startsWith(prefix) || !this.isChat(file)) throw new Error("This file is not a saved Brainiac Wizard chat.");
 		await this.app.vault.delete(file);
 	}
 }
@@ -175,10 +177,10 @@ export class ChatPickerModal extends FuzzySuggestModal<TFile> {
 
 	override renderSuggestion(match: FuzzyMatch<TFile>, el: HTMLElement): void {
 		const file = match.item;
-		const row = el.createDiv({ cls: "vault-scout-chat-row" });
-		row.createSpan({ cls: "vault-scout-chat-row-label", text: this.getItemText(file) });
+		const row = el.createDiv({ cls: "brainiac-wizard-chat-row" });
+		row.createSpan({ cls: "brainiac-wizard-chat-row-label", text: this.getItemText(file) });
 		const remove = row.createEl("button", {
-			cls: "clickable-icon vault-scout-chat-delete",
+			cls: "clickable-icon brainiac-wizard-chat-delete",
 			attr: { "aria-label": `Delete chat ${this.store.titleOf(file)}`, title: "Delete chat permanently" },
 		});
 		setIcon(remove, "trash-2");
@@ -213,10 +215,10 @@ class DeleteChatModal extends Modal {
 		this.contentEl.empty();
 		this.contentEl.createEl("p", { text: `This will permanently delete “${this.file.basename}”.` });
 		this.contentEl.createEl("p", {
-			cls: "vault-scout-delete-note",
+			cls: "brainiac-wizard-delete-note",
 			text: "Attached chat images are not saved in the vault; the chat note only records that an image was attached. Source notes and PDFs will remain untouched.",
 		});
-		const buttons = this.contentEl.createDiv({ cls: "vault-scout-modal-buttons" });
+		const buttons = this.contentEl.createDiv({ cls: "brainiac-wizard-modal-buttons" });
 		new ButtonComponent(buttons).setButtonText("Cancel").onClick(() => this.close());
 		new ButtonComponent(buttons)
 			.setButtonText("Delete permanently")

@@ -18,16 +18,16 @@ class AskModal extends Modal {
 
 	override onOpen(): void {
 		const { contentEl } = this;
-		this.setTitle("Vault Scout asks");
-		contentEl.addClass("vault-scout-ask");
+		this.setTitle("Brainiac Wizard asks");
+		contentEl.addClass("brainiac-wizard-ask");
 		contentEl.createEl("p", { text: this.question });
 
 		if (this.options.length) {
-			const choices = contentEl.createDiv({ cls: "vault-scout-ask-options" });
+			const choices = contentEl.createDiv({ cls: "brainiac-wizard-ask-options" });
 			for (const option of this.options) new ButtonComponent(choices).setButtonText(option).onClick(() => this.answer(option));
 		}
 
-		const row = contentEl.createDiv({ cls: "vault-scout-ask-row" });
+		const row = contentEl.createDiv({ cls: "brainiac-wizard-ask-row" });
 		const input = new TextComponent(row).setPlaceholder(this.options.length ? "Or type an answer" : "Your answer");
 		input.inputEl.setAttrs({ enterkeyhint: "send" });
 		this.scope.register([], "Enter", (evt) => {

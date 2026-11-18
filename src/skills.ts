@@ -42,7 +42,7 @@ export const SKILL_CATALOG = [
 	{
 		name: "okf-notes",
 		description: "Notes that follow the Open Knowledge Format (OKF 0.2) and the vault's own conventions.",
-		source: "https://github.com/floorianmb/vault-scout/tree/main/skills/okf-notes",
+		source: "https://github.com/Alvesxvii/brainiac-wizard/tree/main/skills/okf-notes",
 	},
 ];
 
@@ -67,7 +67,7 @@ export function parseGitHubSource(source: string): GitHubSource {
  * inside Obsidian there is no shell, so script steps must be mapped to tools.
  */
 const ADAPTER = `---
-Note from Vault Scout: you are running inside Obsidian, not in a terminal. You cannot run shell commands or scripts (node, ruby, python, git, npm …). Map the skill's steps to your tools instead:
+Note from Brainiac Wizard: you are running inside Obsidian, not in a terminal. You cannot run shell commands or scripts (node, ruby, python, git, npm …). Map the skill's steps to your tools instead:
 - Reading and searching files: search_notes, read_note, list_folder, get_links. Writing: create_note, edit_note, append_to_note.
 - Paths: use vault-relative paths. An absolute path into the vault refers to the vault itself.
 - Prism: instead of the prism-render.mjs command, call check_prism with the note path. It opens the note so Prism renders it and returns the block statuses and errors from .prism/errors.json.
