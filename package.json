@@ -1,6 +1,6 @@
 {
   "name": "brainiac-wizard",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Chat with your Obsidian vault using your ChatGPT plan. Search notes and PDFs, add context notes, attach images, and optionally search the web.",
   "main": "main.js",
   "private": true,
